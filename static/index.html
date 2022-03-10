@@ -6,7 +6,7 @@
     <meta content='width=device-width; height=device-height; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;' name='viewport' />
     <meta name="viewport" content="width=device-width" />
     <meta name="license" content="
-        Copyright 2013 Abram Hindle
+        Copyright 2022 Abram Hindle, Hongwei Wang
         
         Licensed under the Apache License, Version 2.0 (the "License");
         you may not use this file except in compliance with the License.
@@ -40,6 +40,7 @@ function sendJSONXMLHTTPRequest(url, objects, callback) {
                 if (xhr.status==200) {
                     //XXX: parse some JSON from the request!
                     //XXX: Pass the data to the callback!
+                    callback(JSON.parse(xhr.responseText));
                 }
             } 
             catch(e) {
@@ -50,8 +51,47 @@ function sendJSONXMLHTTPRequest(url, objects, callback) {
     //XXX: POST to a URL
     //XXX: set the mimetype and the accept headers!
     // Remember to use application/json !
+    xhr.open("POST", url, true)
+    xhr.setRequestHeader("Accept", "application/json");
+    xhr.send(JSON.stringify(objects))
 }
 
+function getJSONXMLHTTPRequest(url, callback) {
+    var xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = function () {
+        if (xhr.readyState==4) {
+            try {
+                if (xhr.status==200) {
+                    //XXX: parse some JSON from the request!
+                    //XXX: Pass the data to the callback!
+                    callback(JSON.parse(xhr.responseText))
+                }
+            } 
+            catch(e) {
+                alert('Error: ' + e.name);
+            }
+        }
+    };
+    //XXX: GET to a URL
+    //XXX: set the mimetype and the accept headers!
+    // Remember to use application/json !
+    xhr.open("GET", url, true)
+    xhr.setRequestHeader("Accept", "application/json");
+    xhr.send(null)
+}
+
+function sendCallback(data) {
+    drawNextFrame()
+}
+
+function getCallback(data) {
+   for(var entity in data) {
+       if (data[entity] != world[entity]) {
+           world[entity] = data[entity];
+           drawNextFrame();
+       }
+   }
+}
 
 world = {};
 
@@ -65,7 +105,7 @@ function drawCircle(context,entity) {
         //moveTo(x,y);
         fillStyle = entity["colour"];
         strokeStyle = fillStyle;
-        arc(x, y, (entity["radius"])?entity["radius"]:50, 0, 2.0 * Math.PI, false);  
+        arc(x, y, (entity["radius"])?entity["radius"]:20, 0, 2.0 * Math.PI, false);  
         stroke();                                
     }
 }
@@ -138,7 +178,7 @@ function addEntity(entity, data) {
     world[entity] = data;
     drawNextFrame(); // (but should we?)
     //XXX: Send a XHTML Request that updates the entity you just  modified!
-
+    sendJSONXMLHTTPRequest("http://127.0.0.1:5000/entity/" + entity, data, sendCallback)
 }
 
 var counter = 0;
@@ -247,21 +287,36 @@ mouse = (function() {
 // Add the application specific mouse listeners!
 //XXX: TODO Make these prettier!
 mouse.mousedowners.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'blue'});
+    addEntityWithoutName({'x':x,'y':y,'colour':'#F28482'});
 });
 
 mouse.mouseuppers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'red'});
+    addEntityWithoutName({'x':x,'y':y,'colour':'#84A59D'});
 });
 
 mouse.mousedraggers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'green',
-                          'radius':10});
+    addEntityWithoutName({'x':x,'y':y,'colour':'#F6BD60',
+                          'radius':3});
 });
 
 
 function update() {
-    //XXX: TODO Get the world from the webservice using a XMLHTTPRequest
+    // XXX: TODO Get the world from the webservice using a XMLHTTPRequest
+    // var xhr = new XMLHttpRequest();
+    // xhr.onreadystatechange = function() {
+    //     if (xhr.readyState == 4 && xhr.status == 200) {
+    //         word = JSON.parse(xhr.responseText);
+    //         // var new = false;
+    //         drawNextFrame()
+    //     }
+    // };
+    // xhr.open('GET', 'https://127.0.0.1:5000/world', true);
+    // xhr.setRequestHeader("Accpet", "application/json");
+    // // xhr.onload = function() {
+    // // }
+    // xhr.send();
+    
+    getJSONXMLHTTPRequest("http://127.0.0.1:5000/world", getCallback);
     drawFrame();
 }
 
